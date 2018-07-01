@@ -1,0 +1,16 @@
+<resources>
+    <string name="app_name">JournalApp</string>
+    <string name="sign_in">Sign in</string>
+    <string name="action_delete_all">Delete all</string>
+    <string name="action_log_out">Log out</string>
+    <string name="text_sample">This is an example of how the text entry should look like. It should display all the text typed into it no matter how long it is. It should also have a scrolling effect attached to it. All these should be implemented in the view.</string>
+    <string name="action_delete">Delete</string>
+
+
+    <string name="text_empty_view">Here feels lonely! Add your thoughts</string>
+    <string name="text_uncategorized">Uncategorized</string>
+    <string name="text_personal">Personal</string>
+    <string name="text_work">Work</string>
+    <string name="text_null_value">Null value</string>
+    <string name="android_client_id">923299947569-1ae8ugtmse644fa98h4e9ovrh2qeqq3p.apps.googleusercontent.com</string>
+</resources>

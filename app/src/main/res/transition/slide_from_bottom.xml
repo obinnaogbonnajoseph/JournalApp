@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<transitionSet xmlns:tools="http://schemas.android.com/tools"
+    xmlns:android="http://schemas.android.com/apk/res/android">
+    <slide
+        android:duration="@integer/anim_duration_long"
+        android:slideEdge="bottom"
+        tools:targetApi="lollipop" />
+</transitionSet>

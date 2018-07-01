@@ -1,0 +1,33 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Base application theme. -->
+    <style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar">
+        <!-- Customize your theme here. -->
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+        <item name="colorAccent">@color/colorAccent</item>
+        <item name="android:windowContentTransitions" tools:targetApi="lollipop">true</item>
+
+        <!-- Enter and Exit transitions -->
+        <item name="android:windowEnterTransition" tools:targetApi="lollipop">@transition/slide_from_bottom</item>
+        <item name="android:windowExitTransition" tools:targetApi="lollipop">@transition/slide_from_side</item>
+
+        <!-- specify shared element transitions -->
+        <item name="android:windowSharedElementEnterTransition" tools:targetApi="lollipop">@transition/slide_from_bottom</item>
+        <item name="android:windowSharedElementExitTransition" tools:targetApi="lollipop">@transition/slide_from_bottom</item>
+    </style>
+
+    <style name="uncategorized">
+        <item name="android:textColor">@color/green</item>
+        <item name="android:drawableStart">@drawable/green_round_bg</item>
+    </style>
+
+    <style name="personal">
+        <item name="android:textColor">@color/yellow</item>
+        <item name="android:drawableStart">@drawable/yellow_round_bg</item>
+    </style>
+
+    <style name="work">
+        <item name="android:textColor">@color/blue</item>
+        <item name="android:drawableStart">@drawable/blue_round_bg</item>
+    </style>
+</resources>

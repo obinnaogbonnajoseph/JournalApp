@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- These are the options displayed in the drop-down Spinner -->
+    <string-array name="array_category_options">
+        <item>@string/text_uncategorized</item>
+        <item>@string/text_personal</item>
+        <item>@string/text_work</item>
+    </string-array>
+
+    <array name="array_drawable_options">
+        <item>@style/uncategorized</item>
+        <item>@style/personal</item>
+        <item>@style/work</item>
+    </array>
+</resources>
