@@ -42,14 +42,17 @@ import static com.example.obinna.journalapp.ui.MainActivity.ENTRY;
 
 public class EditActivity extends AppCompatActivity {
 
+    // Define the field variables
     private Spinner mSpinner;
+    // This defines the entry type and sets it to default value of 0;
     private int mEntryType = 0;
     private JournalEntry mEntry;
     private EditText mEditText;
     private DatabaseReference mDatabase;
     private String mUser;
-    // Create a view model instance
-    private EntryViewModel mViewModel;
+    // Create instances of the async tasks that perform the database operations
+    private insertAsyncTask insertTask;
+    private updateAsyncTask updateTask;
 
 
     @SuppressLint("ClickableViewAccessibility")
@@ -61,18 +64,23 @@ public class EditActivity extends AppCompatActivity {
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
+        // Set the back button on the toolbar
         ActionBar actionBar = getSupportActionBar();
         if(actionBar != null) {
             actionBar.setDisplayHomeAsUpEnabled(true);
         }
+        // Set the title of the action bar
         setTitle("Edit");
         // Set up the views and necessary field values
-        mViewModel = ViewModelProviders.of(this).get(EntryViewModel.class);
+        EntryViewModel mViewModel = ViewModelProviders.of(this).get(EntryViewModel.class);
         mSpinner = findViewById(R.id.edit_activity_spinner);
         mEditText = findViewById(R.id.edit_text_edit_activity);
         mDatabase = FirebaseDatabase.getInstance().getReference();
         FirebaseAuth mAuth = FirebaseAuth.getInstance();
         mUser = mAuth.getUid();
+        // Set up the async tasks
+        insertTask = new insertAsyncTask(mViewModel);
+        updateTask = new updateAsyncTask(mViewModel);
 
         // Set up the spinner
         setUpSpinner();
@@ -86,6 +94,10 @@ public class EditActivity extends AppCompatActivity {
         return true;
     }
 
+    /**
+     * Handles any new intent that gets into this activity
+     * @param intent that is sent from another activity
+     */
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
@@ -113,19 +125,21 @@ public class EditActivity extends AppCompatActivity {
                     mEntry.setmEntryType(mEntryType);
                     mEntry.setmEntryTime(currentTime);
                     // Get the rows updated. Run this in an asyncTask
-                    new updateAsyncTask(mViewModel).execute(mEntry);
+                    updateTask.execute(mEntry);
                     // Return to previous activity
                     onBackPressed();
                     return true;
                 } else {        // Case of new entry
                     // Create a new data entry
                     JournalEntry entry = new JournalEntry(currentTime,inputText,mEntryType, currentTime);
-                    new insertAsyncTask(mViewModel).execute(entry);
+                    // Insert the new row. Runs this in an asyncTask
+                    insertTask.execute(entry);
                     // Return to previous activity
                     onBackPressed();
                     return true;
                 }
             case android.R.id.home:
+                // Create an alert dialog that warns the user of potential info loss
                 AlertDialog.Builder builder = new AlertDialog.Builder(this);
                 builder.setMessage("Discard your changes?")
                         .setPositiveButton("OK",new DialogInterface.OnClickListener() {
@@ -150,7 +164,12 @@ public class EditActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * Method that is implemented to handle any new intent into the activity
+     * @param intent is the intent to be handled
+     */
     private void handleIntent(Intent intent) {
+        // If the intent is from the view activity
         if(intent.hasExtra(ENTRY)) {
             // load up the data from the intent
             Bundle bundle = intent.getBundleExtra(ENTRY);
@@ -160,7 +179,7 @@ public class EditActivity extends AppCompatActivity {
                 mEditText.setSelection(mEntry.getEntry().length());
                 mSpinner.setSelection(mEntry.getmEntryType());
             }
-        } else {
+        } else {    // The intent is from the main activity. It is to create a new entry
             mEntry = null;
             mSpinner.setSelection(0);
         }
@@ -182,6 +201,7 @@ public class EditActivity extends AppCompatActivity {
         // Apply the adapter to the spinner
         mSpinner.setAdapter(adapter);
 
+        // This anonymous class performs an action when an item is selected
         mSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
@@ -208,6 +228,42 @@ public class EditActivity extends AppCompatActivity {
                 mEntryType = 0;
             }
         });
+    }
+
+    /**
+     * Take care of memory leaks here if the activity is destroyed while async task is running
+     */
+    @Override
+    protected void onDestroy() {
+        // take care of memory leaks
+        if(insertTask.getStatus() == AsyncTask.Status.RUNNING) {
+            insertTask.cancel(true);
+            insertTask = null;
+        }
+
+        if(updateTask.getStatus() == AsyncTask.Status.RUNNING) {
+            updateTask.cancel(true);
+            updateTask = null;
+        }
+        super.onDestroy();
+    }
+
+    /**
+     * Take care of memory leaks here if the activity is stopped while async task is running
+     */
+    @Override
+    protected void onStop() {
+        // take care of memory leaks
+        if(insertTask.getStatus() == AsyncTask.Status.RUNNING) {
+            insertTask.cancel(true);
+            insertTask = null;
+        }
+
+        if(updateTask.getStatus() == AsyncTask.Status.RUNNING) {
+            updateTask.cancel(true);
+            updateTask = null;
+        }
+        super.onStop();
     }
 
     /**
@@ -284,6 +340,10 @@ public class EditActivity extends AppCompatActivity {
         private int getTextColor() {return textColor;}
     }
 
+    /**
+     * Async task that updates data in the database
+     */
+    @SuppressLint("StaticFieldLeak")
     class updateAsyncTask extends AsyncTask<JournalEntry,Void,Integer> {
 
         private EntryViewModel model;
@@ -308,6 +368,10 @@ public class EditActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * Async task that inserts data into the database
+     */
+    @SuppressLint("StaticFieldLeak")
     class insertAsyncTask extends AsyncTask<JournalEntry,Void,Long> {
 
         private EntryViewModel model;
