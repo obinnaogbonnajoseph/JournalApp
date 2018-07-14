@@ -23,11 +23,10 @@ public class EntryViewModel extends AndroidViewModel {
 
     public LiveData<List<JournalEntry>> getAllEntries() { return mEntries; }
 
-    public void insert(JournalEntry entry) {mRepository.insert(entry); }
+    public long insert(JournalEntry entry) { return mRepository.insert(entry); }
 
-    public void delete(JournalEntry entry) {mRepository.delete(entry);}
+    public int delete(JournalEntry... entry) {return mRepository.delete(entry);}
 
-    public void update(JournalEntry entry) {mRepository.update(entry);}
-
+    public int update(JournalEntry entry) {return mRepository.update(entry);}
 }
 

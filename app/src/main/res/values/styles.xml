@@ -3,7 +3,23 @@
     <style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar">
         <!-- Customize your theme here. -->
         <item name="colorPrimary">@color/colorPrimary</item>
-        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+        <item name="colorAccent">@color/colorAccent</item>
+        <item name="android:windowContentTransitions" tools:targetApi="lollipop">true</item>
+
+        <!-- Enter and Exit transitions -->
+        <item name="android:windowEnterTransition" tools:targetApi="lollipop">@transition/slide_from_bottom</item>
+        <item name="android:windowExitTransition" tools:targetApi="lollipop">@transition/slide_from_side</item>
+
+        <!-- specify shared element transitions -->
+        <item name="android:windowSharedElementEnterTransition" tools:targetApi="lollipop">@transition/slide_from_bottom</item>
+        <item name="android:windowSharedElementExitTransition" tools:targetApi="lollipop">@transition/slide_from_bottom</item>
+    </style>
+
+    <!-- Style for edit layout. -->
+    <style name="AppTheme.NoActionBar" parent="Theme.AppCompat.DayNight.NoActionBar">
+
+        <!-- Customize your theme here. -->
+        <item name="colorPrimary">@color/colorPrimary</item>
         <item name="colorAccent">@color/colorAccent</item>
         <item name="android:windowContentTransitions" tools:targetApi="lollipop">true</item>
 

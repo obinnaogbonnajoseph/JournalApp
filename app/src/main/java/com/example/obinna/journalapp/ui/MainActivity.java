@@ -42,6 +42,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 
+
 public class MainActivity extends AppCompatActivity implements
 GoogleApiClient.OnConnectionFailedListener, JournalRecyclerViewAdapter.AdapterOnClickHandler,
 FirebaseAuth.AuthStateListener {
@@ -182,13 +183,15 @@ FirebaseAuth.AuthStateListener {
                             .setPositiveButton("OK",new DialogInterface.OnClickListener() {
                                 @Override
                                 public void onClick(DialogInterface dialog, int which) {
-                                    // Delete from firebase database
-                                    mDatabase.child("entries").child(mFirebaseUser.getUid())
-                                            .setValue(null);
-                                    // Delete the local database
-                                    for(JournalEntry entry : entries) {
-                                        mModel.delete(entry);
-                                    }
+
+                                    // convert the list to an array
+                                    JournalEntry[] deleteEntries = entries.toArray(new JournalEntry[entries.size()]);
+                                    // delete the entries
+                                    int rowsDeleted = mModel.delete(deleteEntries);
+                                    if(rowsDeleted > 0) {
+                                        Toast.makeText(MainActivity.this,"Deleted",Toast.LENGTH_SHORT).show();
+                                    } else Toast.makeText(MainActivity.this, "Delete was not successful.\n Some error occurred.",
+                                            Toast.LENGTH_SHORT).show();
                                 }
                             })
                             .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {

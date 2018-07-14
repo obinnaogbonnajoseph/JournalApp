@@ -19,11 +19,12 @@ public interface EntryDao {
     LiveData<List<JournalEntry>> getAllEntries();
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    void insert(JournalEntry... prescriptions);
+    long insert(JournalEntry prescriptions);
 
     @Delete
-    void deleteMeds(JournalEntry... prescriptions);
+    int deleteMeds(JournalEntry... prescriptions);
 
-    @Update
-    void updateMeds(JournalEntry prescription);
+    @Update(onConflict = OnConflictStrategy.REPLACE)
+    int updateMeds(JournalEntry prescription);
+
 }

@@ -1,17 +1,20 @@
 package com.example.obinna.journalapp.ui;
 
 import android.annotation.SuppressLint;
+import android.arch.lifecycle.ViewModelProviders;
 import android.content.Context;
+import android.content.DialogInterface;
+import android.content.Intent;
+import android.os.AsyncTask;
+import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.ActionBar;
-import android.arch.lifecycle.ViewModelProviders;
-import android.content.Intent;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
+import android.support.v7.widget.Toolbar;
 import android.text.TextUtils;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -27,9 +30,6 @@ import android.widget.Toast;
 import com.example.obinna.journalapp.R;
 import com.example.obinna.journalapp.model.EntryViewModel;
 import com.example.obinna.journalapp.model.JournalEntry;
-import com.google.android.gms.tasks.OnCompleteListener;
-import com.google.android.gms.tasks.OnFailureListener;
-import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
@@ -51,11 +51,16 @@ public class EditActivity extends AppCompatActivity {
     // Create a view model instance
     private EntryViewModel mViewModel;
 
+
     @SuppressLint("ClickableViewAccessibility")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_edit);
+        // Adding Toolbar to Main screen
+        Toolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+
         ActionBar actionBar = getSupportActionBar();
         if(actionBar != null) {
             actionBar.setDisplayHomeAsUpEnabled(true);
@@ -107,55 +112,39 @@ public class EditActivity extends AppCompatActivity {
                     mEntry.setmEntry(inputText);
                     mEntry.setmEntryType(mEntryType);
                     mEntry.setmEntryTime(currentTime);
-                    mViewModel.update(mEntry);
-                    // Update the Firebase database
-                    String existDataId = String.valueOf(mEntry.getId());
-                    mDatabase.child("entries").child(mUser).child(existDataId).setValue(mEntry)
-                    .addOnCompleteListener(new OnCompleteListener<Void>() {
-                        @Override
-                        public void onComplete(@NonNull Task<Void> task) {
-                            Toast.makeText(EditActivity.this,"Update successful",
-                                    Toast.LENGTH_SHORT).show();
-                        }
-                    })
-                    .addOnFailureListener(new OnFailureListener() {
-                        @Override
-                        public void onFailure(@NonNull Exception e) {
-                            Toast.makeText(EditActivity.this,"Couldn't update.\nPlease try later",
-                                    Toast.LENGTH_SHORT).show();
-                        }
-                    });
-
+                    // Get the rows updated. Run this in an asyncTask
+                    new updateAsyncTask(mViewModel).execute(mEntry);
+                    // Return to previous activity
                     onBackPressed();
                     return true;
                 } else {        // Case of new entry
                     // Create a new data entry
                     JournalEntry entry = new JournalEntry(currentTime,inputText,mEntryType, currentTime);
-                    mViewModel.insert(entry);
-                    // Save to firebase database
-                    String  userId = String.valueOf(entry.getId());
-                    Log.d("EditActivity","Value of entry id: " + userId);
-                    mDatabase.child("entries").child(mUser).child(userId).setValue(entry)
-                    .addOnCompleteListener(new OnCompleteListener<Void>() {
-                        @Override
-                        public void onComplete(@NonNull Task<Void> task) {
-                            Toast.makeText(EditActivity.this,"Note added",
-                                    Toast.LENGTH_SHORT).show();
-                        }
-                    })
-                    .addOnFailureListener(new OnFailureListener() {
-                        @Override
-                        public void onFailure(@NonNull Exception e) {
-                            Toast.makeText(EditActivity.this,"Couldn't add note.\nPlease try later.",
-                                    Toast.LENGTH_SHORT).show();
-                        }
-                    });
+                    new insertAsyncTask(mViewModel).execute(entry);
+                    // Return to previous activity
                     onBackPressed();
                     return true;
                 }
             case android.R.id.home:
-                onBackPressed();
-                    return true;
+                AlertDialog.Builder builder = new AlertDialog.Builder(this);
+                builder.setMessage("Discard your changes?")
+                        .setPositiveButton("OK",new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                // Discard changes
+                                onBackPressed();
+                            }
+                        })
+                        .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                // Cancel the dialog
+                                if(dialog != null) {
+                                    dialog.dismiss();
+                                }
+                            }
+                        }).create().show();
+                return true;
             default:
                 return super.onOptionsItemSelected(item);
         }
@@ -177,6 +166,9 @@ public class EditActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * Method to set up the spinner
+     */
     private void setUpSpinner() {
         // Create adapter for spinner.
         List<SpinnerList> list = new ArrayList<>();
@@ -218,6 +210,9 @@ public class EditActivity extends AppCompatActivity {
         });
     }
 
+    /**
+     * Custom adapter class for the spinner items
+     */
     class CustomAdapter extends ArrayAdapter<SpinnerList> {
 
        List<SpinnerList> list;
@@ -268,6 +263,9 @@ public class EditActivity extends AppCompatActivity {
 
     }
 
+    /**
+     * Class for the spinner list items
+     */
     class SpinnerList {
         private String textName;
         private int drawableResource;
@@ -284,5 +282,53 @@ public class EditActivity extends AppCompatActivity {
         private int getDrawableResource() {return drawableResource;}
 
         private int getTextColor() {return textColor;}
+    }
+
+    class updateAsyncTask extends AsyncTask<JournalEntry,Void,Integer> {
+
+        private EntryViewModel model;
+
+        updateAsyncTask(EntryViewModel model) {
+            this.model = model;
+        }
+
+        @Override
+        protected Integer doInBackground(JournalEntry... journalEntries) {
+            return model.update(journalEntries[0]);
+        }
+
+        @Override
+        protected void onPostExecute(Integer integer) {
+            super.onPostExecute(integer);
+            if(integer > 0) {
+                Toast.makeText(EditActivity.this,"Note updated successfully",Toast.LENGTH_SHORT)
+                        .show();
+            } else Toast.makeText(EditActivity.this,"Something went wrong.\n Note not updated",Toast.LENGTH_SHORT)
+                    .show();
+        }
+    }
+
+    class insertAsyncTask extends AsyncTask<JournalEntry,Void,Long> {
+
+        private EntryViewModel model;
+
+        insertAsyncTask(EntryViewModel model) {
+            this.model = model;
+        }
+
+        @Override
+        protected Long doInBackground(JournalEntry... journalEntries) {
+            return model.insert(journalEntries[0]);
+        }
+
+        @Override
+        protected void onPostExecute(Long aLong) {
+            super.onPostExecute(aLong);
+            if(aLong > 0) {
+                Toast.makeText(EditActivity.this,"Note added successfully",Toast.LENGTH_SHORT)
+                        .show();
+            } else Toast.makeText(EditActivity.this,"Something went wrong.\n Note not added",Toast.LENGTH_SHORT)
+                    .show();
+        }
     }
 }
