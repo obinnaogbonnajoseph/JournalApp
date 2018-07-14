@@ -344,7 +344,7 @@ public class EditActivity extends AppCompatActivity {
      * Async task that updates data in the database
      */
     @SuppressLint("StaticFieldLeak")
-    class updateAsyncTask extends AsyncTask<JournalEntry,Void,Integer> {
+    private class updateAsyncTask extends AsyncTask<JournalEntry,Void,Integer> {
 
         private EntryViewModel model;
 
@@ -372,7 +372,7 @@ public class EditActivity extends AppCompatActivity {
      * Async task that inserts data into the database
      */
     @SuppressLint("StaticFieldLeak")
-    class insertAsyncTask extends AsyncTask<JournalEntry,Void,Long> {
+    private class insertAsyncTask extends AsyncTask<JournalEntry,Void,Long> {
 
         private EntryViewModel model;
 

@@ -1,9 +1,11 @@
 package com.example.obinna.journalapp.ui;
 
+import android.annotation.SuppressLint;
 import android.app.ActivityOptions;
 import android.arch.lifecycle.ViewModelProviders;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.content.ContextCompat;
@@ -20,7 +22,6 @@ import android.widget.Toast;
 import com.example.obinna.journalapp.R;
 import com.example.obinna.journalapp.model.EntryViewModel;
 import com.example.obinna.journalapp.model.JournalEntry;
-import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 
@@ -30,11 +31,12 @@ import static com.example.obinna.journalapp.ui.MainActivity.ENTRY;
 
 public class ViewActivity extends AppCompatActivity {
 
+    // Field variables
     private JournalEntry mEntry;
     private EntryViewModel mViewModel;
     private DatabaseReference databaseReference;
-    private String userId;
-    TextView categoryView, textView, timeView;
+    // Create an instance of delete async task
+    deleteAsyncTask deleteTask;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -48,15 +50,19 @@ public class ViewActivity extends AppCompatActivity {
         // Instantiate the view model
         mViewModel = ViewModelProviders.of(ViewActivity.this).get(EntryViewModel.class);
         databaseReference = FirebaseDatabase.getInstance().getReference();
-        FirebaseAuth mAuth = FirebaseAuth.getInstance();
-        userId = mAuth.getUid();
+        //FirebaseAuth mAuth = FirebaseAuth.getInstance();
+        //String userId = mAuth.getUid();
+        // Instantiate the delete async task
+        // Instantiate the async task
+        deleteTask = new deleteAsyncTask(mViewModel);
 
+        // Handle intent from other activities
         handleIntent();
 
         // Get the views and assign its value
-        textView = findViewById(R.id.text_entry);
-        categoryView = findViewById(R.id.view_activity_category_view);
-        timeView = findViewById(R.id.view_activity_time_view);
+        TextView textView = findViewById(R.id.text_entry);
+        TextView categoryView = findViewById(R.id.view_activity_category_view);
+        TextView timeView = findViewById(R.id.view_activity_time_view);
         textView.setText(mEntry.getEntry());
 
         // Set the title and time view of the activity
@@ -126,13 +132,8 @@ public class ViewActivity extends AppCompatActivity {
                             @Override
                             public void onClick(DialogInterface dialog, int which) {
                                 // Delete the data
-                                int rowsDeleted = mViewModel.delete(mEntry);
-                                if(rowsDeleted > 0) {
-                                    Toast.makeText(ViewActivity.this,"Deleted",
-                                            Toast.LENGTH_SHORT).show();
-                                } else Toast.makeText(ViewActivity.this,"Delete not successful.\n Some error occurred.",
-                                        Toast.LENGTH_SHORT).show();
-
+                                deleteTask.execute(mEntry);
+                                // Return to previous activity
                                 onBackPressed();
                             }
                         })
@@ -165,6 +166,57 @@ public class ViewActivity extends AppCompatActivity {
         Intent intent = getIntent();
         if(intent.hasExtra(ENTRY)) {
             mEntry = intent.getBundleExtra(ENTRY).getParcelable(ENTRY);
+        }
+    }
+
+    /**
+     * Takes care of possible memory leak of the async task
+     */
+    @Override
+    protected void onStop() {
+        if(deleteTask.getStatus() == AsyncTask.Status.RUNNING) {
+            deleteTask.cancel(true);
+            deleteTask = null;
+        }
+        super.onStop();
+    }
+
+    /**
+     * Takes care of possible memory leak of the async task
+     */
+    @Override
+    protected void onDestroy() {
+        if(deleteTask.getStatus() == AsyncTask.Status.RUNNING) {
+            deleteTask.cancel(true);
+            deleteTask = null;
+        }
+        super.onDestroy();
+    }
+
+    /**
+     * Async task that takes care of the delete database operation.
+     */
+    @SuppressLint("StaticFieldLeak")
+    private class deleteAsyncTask extends AsyncTask<JournalEntry, Void, Integer> {
+
+        private EntryViewModel viewModel;
+
+        deleteAsyncTask(EntryViewModel viewModel) {
+            this.viewModel = viewModel;
+        }
+
+        @Override
+        protected Integer doInBackground(JournalEntry... journalEntries) {
+            return viewModel.delete(journalEntries);
+        }
+
+        @Override
+        protected void onPostExecute(Integer integer) {
+            super.onPostExecute(integer);
+            if(integer > 0) {
+                Toast.makeText(ViewActivity.this,"Note deleted.",Toast.LENGTH_SHORT).show();
+            } else Toast.makeText(ViewActivity.this,"Something went wrong.\nNote not deleted.",
+                    Toast.LENGTH_SHORT).show();
         }
     }
 }

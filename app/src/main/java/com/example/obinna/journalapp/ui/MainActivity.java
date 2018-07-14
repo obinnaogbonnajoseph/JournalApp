@@ -1,10 +1,12 @@
 package com.example.obinna.journalapp.ui;
 
+import android.annotation.SuppressLint;
 import android.app.ActivityOptions;
 import android.arch.lifecycle.Observer;
 import android.arch.lifecycle.ViewModelProviders;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -41,8 +43,6 @@ import com.google.firebase.database.ValueEventListener;
 import java.util.ArrayList;
 import java.util.List;
 
-
-
 public class MainActivity extends AppCompatActivity implements
 GoogleApiClient.OnConnectionFailedListener, JournalRecyclerViewAdapter.AdapterOnClickHandler,
 FirebaseAuth.AuthStateListener {
@@ -61,6 +61,8 @@ FirebaseAuth.AuthStateListener {
     private List<JournalEntry> listEntries;
     // adapter
     private JournalRecyclerViewAdapter mAdapter;
+    // Create an instance of delete async task
+    deleteAsyncTask deleteTask;
 
 
     @Override
@@ -81,6 +83,9 @@ FirebaseAuth.AuthStateListener {
         mFirebaseAuth.addAuthStateListener(this);
         mFirebaseUser = mFirebaseAuth.getCurrentUser();
         mDatabase = FirebaseDatabase.getInstance().getReference();
+
+        // Instantiate the async task
+        deleteTask = new deleteAsyncTask(mModel);
 
 
         // If user has not previously logged in, start the login activity
@@ -183,15 +188,10 @@ FirebaseAuth.AuthStateListener {
                             .setPositiveButton("OK",new DialogInterface.OnClickListener() {
                                 @Override
                                 public void onClick(DialogInterface dialog, int which) {
-
                                     // convert the list to an array
                                     JournalEntry[] deleteEntries = entries.toArray(new JournalEntry[entries.size()]);
-                                    // delete the entries
-                                    int rowsDeleted = mModel.delete(deleteEntries);
-                                    if(rowsDeleted > 0) {
-                                        Toast.makeText(MainActivity.this,"Deleted",Toast.LENGTH_SHORT).show();
-                                    } else Toast.makeText(MainActivity.this, "Delete was not successful.\n Some error occurred.",
-                                            Toast.LENGTH_SHORT).show();
+                                    // Delete the entries
+                                    deleteTask.execute(deleteEntries);
                                 }
                             })
                             .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
@@ -236,11 +236,20 @@ FirebaseAuth.AuthStateListener {
         }
     }
 
+    /**
+     * Takes care of possible memory leak of the async task
+     * Also removes the firebase authentication listener
+     */
     @Override
     protected void onDestroy() {
-        super.onDestroy();
         // remove authentication state listener
         mFirebaseAuth.removeAuthStateListener(this);
+        // cancels async task if it is still running when activity is destroyed
+        if(deleteTask.getStatus() == AsyncTask.Status.RUNNING) {
+            deleteTask.cancel(true);
+            deleteTask = null;
+        }
+        super.onDestroy();
     }
 
     @Override
@@ -266,6 +275,45 @@ FirebaseAuth.AuthStateListener {
         a.addCategory(Intent.CATEGORY_HOME);
         a.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
        startActivity(a);
+    }
+
+    /**
+     * Takes care of possible memory leak of the async task
+     */
+    @Override
+    protected void onStop() {
+        if(deleteTask.getStatus() == AsyncTask.Status.RUNNING) {
+            deleteTask.cancel(true);
+            deleteTask = null;
+        }
+        super.onStop();
+    }
+
+    /**
+     * Async task that takes care of the delete database operation.
+     */
+    @SuppressLint("StaticFieldLeak")
+    private class deleteAsyncTask extends AsyncTask<JournalEntry, Void, Integer> {
+
+        private EntryViewModel viewModel;
+
+        deleteAsyncTask(EntryViewModel viewModel) {
+            this.viewModel = viewModel;
+        }
+
+        @Override
+        protected Integer doInBackground(JournalEntry... journalEntries) {
+            return viewModel.delete(journalEntries);
+        }
+
+        @Override
+        protected void onPostExecute(Integer integer) {
+            super.onPostExecute(integer);
+            if(integer > 0) {
+                Toast.makeText(MainActivity.this,"Notes deleted.",Toast.LENGTH_SHORT).show();
+            } else Toast.makeText(MainActivity.this,"Something went wrong.\n Notes not deleted.",
+                    Toast.LENGTH_SHORT).show();
+        }
     }
 
     private List<JournalEntry> populateData() {
