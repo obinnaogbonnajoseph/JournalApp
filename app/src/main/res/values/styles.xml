@@ -7,11 +7,9 @@
         <item name="android:windowContentTransitions" tools:targetApi="lollipop">true</item>
 
         <!-- Enter and Exit transitions -->
-        <item name="android:windowEnterTransition" tools:targetApi="lollipop">@transition/slide_from_bottom</item>
         <item name="android:windowExitTransition" tools:targetApi="lollipop">@transition/slide_from_side</item>
 
         <!-- specify shared element transitions -->
-        <item name="android:windowSharedElementEnterTransition" tools:targetApi="lollipop">@transition/slide_from_bottom</item>
         <item name="android:windowSharedElementExitTransition" tools:targetApi="lollipop">@transition/slide_from_bottom</item>
     </style>
 
@@ -24,11 +22,9 @@
         <item name="android:windowContentTransitions" tools:targetApi="lollipop">true</item>
 
         <!-- Enter and Exit transitions -->
-        <item name="android:windowEnterTransition" tools:targetApi="lollipop">@transition/slide_from_bottom</item>
         <item name="android:windowExitTransition" tools:targetApi="lollipop">@transition/slide_from_side</item>
 
         <!-- specify shared element transitions -->
-        <item name="android:windowSharedElementEnterTransition" tools:targetApi="lollipop">@transition/slide_from_bottom</item>
         <item name="android:windowSharedElementExitTransition" tools:targetApi="lollipop">@transition/slide_from_bottom</item>
     </style>
 
