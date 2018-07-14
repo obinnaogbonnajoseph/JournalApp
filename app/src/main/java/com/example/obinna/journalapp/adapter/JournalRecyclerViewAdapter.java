@@ -50,6 +50,9 @@ public class JournalRecyclerViewAdapter extends RecyclerView.Adapter<
     @Override
     public void onBindViewHolder(@NonNull JournalRecyclerViewAdapter.EntryViewHolder holder, int position) {
         if(mEntries != null) {
+            // Sort the entries here:
+            Collections.sort(mEntries,new SortByDate());
+            // Get the current data.
             JournalEntry entry = mEntries.get(position);
             // Set the summary text
             holder.summary.setText(entry.getEntry());
@@ -84,8 +87,6 @@ public class JournalRecyclerViewAdapter extends RecyclerView.Adapter<
     }
 
     public void setmEntries(List<JournalEntry> entries) {
-        // Sort the list
-        Collections.sort(entries,new SortByDate());
         mEntries = entries;
         notifyDataSetChanged();
     }
@@ -120,8 +121,8 @@ public class JournalRecyclerViewAdapter extends RecyclerView.Adapter<
 
         @Override
         public int compare(JournalEntry entry1, JournalEntry entry2) {
-            int value1 = (int) entry1.getId();
-            int value2 = (int) entry2.getId();
+            int value1 = (int) entry1.getEntryTime();
+            int value2 = (int) entry2.getEntryTime();
 
             return value1 > value2 ? -1 : (value1 < value2) ? 1 : 0;
         }

@@ -102,7 +102,9 @@ FirebaseAuth.AuthStateListener {
                 int endIndex = userName.indexOf(" ");
                 String userFirstName = userName.substring(0,endIndex);
                 String title = "Hello, " + userFirstName;
-                setTitle(title);
+                if(title.length() < 25) {
+                    setTitle(title);
+                } else setTitle("Hello, User");
             }
             // Keep reference in sync
             mDatabase.child("entries").child(mFirebaseUser.getUid()).keepSynced(true);
