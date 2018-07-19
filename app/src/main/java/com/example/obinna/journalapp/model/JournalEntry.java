@@ -26,6 +26,9 @@ public class JournalEntry implements Parcelable{
     private long mEntryTime;
 
     @Ignore
+    public boolean selected = false;
+
+    @Ignore
     public JournalEntry() {
         // Default constructor required for calls to DataSnapshot.getValue(User.class)
     }

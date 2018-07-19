@@ -11,6 +11,7 @@ import android.os.Build;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
+import android.support.v7.app.ActionBar;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -48,18 +49,25 @@ GoogleApiClient.OnConnectionFailedListener, JournalRecyclerViewAdapter.AdapterOn
 FirebaseAuth.AuthStateListener {
 
     public static final String ENTRY = "com.example.obinna.journalapp.ENTRY";
-    private RecyclerView mRecyclerView;
+    // Set up the firebase and google variables
     private FirebaseAuth mFirebaseAuth;
     private FirebaseUser mFirebaseUser;
     private DatabaseReference mDatabase;
     private GoogleApiClient mGoogleApiClient;
+    // Set up the views
     private TextView emptyView;
     private ProgressBar mProgressBar;
+    private RecyclerView mRecyclerView;
+    private FloatingActionButton mFAB;
+    // Toolbar
+    private ActionBar mActionBar;
     // View Model instance
     private EntryViewModel mModel;
     // list data to initialize database
     private List<JournalEntry> listEntries;
-    // adapter
+    // list data for deleting selected items
+    private List<JournalEntry> mDeleteList = new ArrayList<>();
+    // Recycler adapter
     private JournalRecyclerViewAdapter mAdapter;
     // Create an instance of delete async task
     deleteAsyncTask deleteTask;
@@ -70,9 +78,11 @@ FirebaseAuth.AuthStateListener {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         setTitle(R.id.main_activity_title);
+        // Set up the action bar
+        mActionBar = getSupportActionBar();
         // Set up the views
         mRecyclerView = findViewById(R.id.rv_journal_list);
-        FloatingActionButton mFAB = findViewById(R.id.main_fab);
+        mFAB = findViewById(R.id.main_fab);
         mProgressBar = findViewById(R.id.loading_indicator);
         emptyView = findViewById(R.id.error_view);
         // Get view model from ViewModelProvider
@@ -122,11 +132,10 @@ FirebaseAuth.AuthStateListener {
         mRecyclerView.addItemDecoration(new DividerItemDecoration(mRecyclerView.getContext(),
                 DividerItemDecoration.VERTICAL));
 
-
         // add observer for LiveData returned by getAllEntries()
         mModel.getAllEntries().observe(this, new Observer<List<JournalEntry>>() {
             @Override
-            public void onChanged(@Nullable List<JournalEntry> journalEntries) {
+            public void onChanged(@Nullable final List<JournalEntry> journalEntries) {
                 if(journalEntries != null) {
                     if(journalEntries.isEmpty()) {
                         // Populate from the firebase database
@@ -220,9 +229,95 @@ FirebaseAuth.AuthStateListener {
                 // Close and tidy up activity
                 finish();
                 return true;
+            case R.id.action_delete_main:
+                // delete the items
+                // Create an alert dialog, to warn user of delete action
+                // First check that list is not empty
+                if(!mDeleteList.isEmpty()) {
+                    AlertDialog.Builder builder = new AlertDialog.Builder(this);
+                    builder.setMessage("Delete selected memories?")
+                            .setPositiveButton("OK",new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialog, int which) {
+                                    // convert the list to an array
+                                    JournalEntry[] deleteSelected = mDeleteList.toArray(new JournalEntry[mDeleteList.size()]);
+                                    // Delete the entries
+                                    deleteTask.execute(deleteSelected);
+                                    // clear the list
+                                    mDeleteList.clear();
+                                    // Make all selection to be false
+                                    List<JournalEntry> allSelection = mModel.getAllEntries().getValue();
+                                    if(allSelection != null && !allSelection.isEmpty()) {
+                                        for (int i = 0; i < allSelection.size(); i++) {
+                                            allSelection.get(i).selected = false;
+                                        }
+                                        mAdapter.notifyDataSetChanged();
+                                    }
+                                    // reset the menu item
+                                    invalidateOptionsMenu();
+                                }
+                            })
+                            .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialog, int which) {
+                                    // Cancel the dialog
+                                    if(dialog != null) {
+                                        dialog.dismiss();
+                                        // clear the list
+                                        mDeleteList.clear();
+                                        // Make all selection to be false
+                                        List<JournalEntry> allSelection = mModel.getAllEntries().getValue();
+                                        if(allSelection != null && !allSelection.isEmpty()) {
+                                            for (int i = 0; i < allSelection.size(); i++) {
+                                                allSelection.get(i).selected=false;
+                                            }
+                                            mAdapter.notifyDataSetChanged();
+                                        }
+                                    }
+                                    // reset the menu item
+                                    invalidateOptionsMenu();
+                                }
+                            }).create().show();
+
+                } else Toast.makeText(MainActivity.this, "Nothing selected to delete",Toast.LENGTH_SHORT).show();
+                return true;
+            case android.R.id.home:
+                // Clear the list
+                mDeleteList.clear();
+                // Make all selection to be false
+                List<JournalEntry> allSelection = mModel.getAllEntries().getValue();
+                if(allSelection != null && !allSelection.isEmpty()) {
+                    for (int i = 0; i < allSelection.size(); i++) {
+                        allSelection.get(i).selected=false;
+                    }
+                    mAdapter.notifyDataSetChanged();
+                }
+                invalidateOptionsMenu();
+                return true;
             default:
                 return super.onOptionsItemSelected(item);
         }
+    }
+
+    @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        MenuItem deleteAllItem = menu.findItem(R.id.action_delete_all);
+        MenuItem logOutItem = menu.findItem(R.id.action_log_out);
+        MenuItem deleteSelectedItem = menu.findItem(R.id.action_delete_main);
+        if(mDeleteList.isEmpty()) {
+            deleteAllItem.setVisible(true);
+            logOutItem.setVisible(true);
+            deleteSelectedItem.setVisible(false);
+            mFAB.setVisibility(View.VISIBLE);
+            mActionBar.setDisplayHomeAsUpEnabled(false);
+        } else {
+            deleteAllItem.setVisible(false);
+            logOutItem.setVisible(false);
+            deleteSelectedItem.setVisible(true);
+            mFAB.setVisibility(View.INVISIBLE);
+            mActionBar.setDisplayHomeAsUpEnabled(true);
+        }
+        return super.onPrepareOptionsMenu(menu);
     }
 
     @Override
@@ -256,14 +351,32 @@ FirebaseAuth.AuthStateListener {
 
     @Override
     public void onClick(JournalEntry entry) {
-        Intent intent = new Intent(MainActivity.this,ViewActivity.class);
-        Bundle bundle = new Bundle();
-        bundle.putParcelable(ENTRY,entry);
-        intent.putExtra(ENTRY,bundle);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            startActivity(intent, ActivityOptions.makeSceneTransitionAnimation(MainActivity.this).toBundle());
-        } else startActivity(intent);
+        if(mDeleteList.isEmpty()) {
+            Intent intent = new Intent(MainActivity.this,ViewActivity.class);
+            Bundle bundle = new Bundle();
+            bundle.putParcelable(ENTRY,entry);
+            intent.putExtra(ENTRY,bundle);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                startActivity(intent, ActivityOptions.makeSceneTransitionAnimation(MainActivity.this).toBundle());
+            } else startActivity(intent);
+            invalidateOptionsMenu();
+        }
     }
+
+    @Override
+    public void onLongClick(int position) {
+        mDeleteList.add(mModel.getAllEntries().getValue().get(position));
+        mAdapter.notifyItemChanged(position);
+        // Set up the necessary views
+        invalidateOptionsMenu();
+    }
+
+    @Override
+    public void onDeleteEntry(JournalEntry entry) {
+        // Delete entry from list.
+        mDeleteList.remove(entry);
+    }
+
 
     @Override
     public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {

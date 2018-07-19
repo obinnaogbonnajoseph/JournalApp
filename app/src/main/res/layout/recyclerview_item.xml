@@ -6,11 +6,12 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:padding="8dp"
+    android:background="?attr/selectableItemBackground"
     android:minHeight="?android:attr/listPreferredItemHeight">
 
     <TextView
         android:id="@+id/summary_view"
-        android:layout_width="match_parent"
+        android:layout_width="200dp"
         android:layout_height="wrap_content"
         android:ellipsize="end"
         android:gravity="start"
@@ -44,5 +45,15 @@
         app:layout_constraintBottom_toBottomOf="@id/category_view"
         app:layout_constraintLeft_toRightOf="@id/category_view"
         tools:text="25/06 04:01 AM"/>
+
+    <CheckBox
+        android:id="@+id/check_box"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="8dp"
+        android:visibility="invisible"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintRight_toRightOf="parent" />
 
 </android.support.constraint.ConstraintLayout>
